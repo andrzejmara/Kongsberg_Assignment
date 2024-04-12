@@ -3,22 +3,32 @@
     {
       "ID": 1,
       "SensorID": 1,
-      "Active": true
+      "Active": true,
+      "PollingInterval": 100
     },
     {
       "ID": 2,
       "SensorID": 2,
-      "Active": true
+      "Active": true,
+      "PollingInterval": 100
     },
     {
       "ID": 3,
       "SensorID": 3,
-      "Active": false
+      "Active": false,
+      "PollingInterval": 10
     },
     {
       "ID": 4,
       "SensorID": 1,
-      "Active": true
+      "Active": true,
+      "PollingInterval": 10
+    },
+    {
+      "ID": 5,
+      "SensorID": 3,
+      "Active": true,
+      "PollingInterval": 10
     }
   ]
 }

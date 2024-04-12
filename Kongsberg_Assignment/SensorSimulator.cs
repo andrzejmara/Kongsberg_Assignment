@@ -6,12 +6,13 @@ namespace Kongsberg_Assignment
     {
         private readonly List<Sensor> _sensors;
         private readonly Random _random;
+        //TODO consider creating a method that periodically cleans the pool.
         private readonly ConcurrentDictionary<int, ConcurrentQueue<string>> _messagePool;
-        private readonly ConcurrentDictionary<int, int> _sensorReceiverMap;
+        private readonly ConcurrentDictionary<int, List<int>> _sensorReceiverMap;
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly Task _messageProcessingTask;
 
-        public SensorSimulator(List<Sensor> sensors, ConcurrentDictionary<int, ConcurrentQueue<string>> messagePool, ConcurrentDictionary<int, int> sensorReceiverMap)
+        public SensorSimulator(List<Sensor> sensors, ConcurrentDictionary<int, ConcurrentQueue<string>> messagePool, ConcurrentDictionary<int, List<int>> sensorReceiverMap)
         {
             _sensors = sensors;
             _random = new Random();
@@ -37,10 +38,7 @@ namespace Kongsberg_Assignment
                 int value = GenerateRandomValue(sensor.MinValue, sensor.MaxValue);
                 string quality = ClassifyValue(value, sensor.MinValue, sensor.MaxValue);
                 string message = new SensorData(sensor.ID, sensor.Type, value, quality).ToMessage();
-                if (sensor.ID == 1)
-                {
-                    Console.WriteLine($"Sensor 1 sent a message: {message}");
-                }
+                Console.WriteLine($"Sensor {sensor.ID} sent a message: {message}");
                 _messagePool.AddOrUpdate(sensor.ID, new ConcurrentQueue<string>(), (id, queue) => queue).Enqueue(message);
                 // Calculate Herz to seconds
                 var period = TimeSpan.FromSeconds(1.0 / sensor.Frequency);
@@ -91,8 +89,6 @@ namespace Kongsberg_Assignment
         {
             // Simulate message transmission delay (e.g., network latency)
             await Task.Delay(TimeSpan.FromSeconds(0.1));
-
-            Console.WriteLine(message); // For demonstration purpose
         }
 
         public void Stop()

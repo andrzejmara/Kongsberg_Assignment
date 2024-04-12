@@ -26,12 +26,16 @@ namespace Kongsberg_Assignment
             ConcurrentDictionary<int, ConcurrentQueue<string>> messagePool = new ConcurrentDictionary<int, ConcurrentQueue<string>>();
 
             // Create a sensor-receiver mapping
-            ConcurrentDictionary<int, int> sensorReceiverMap = new ConcurrentDictionary<int, int>();
+            ConcurrentDictionary<int, List<int>> sensorReceiverMap = new ConcurrentDictionary<int, List<int>>();
             foreach (var receiver in receivers)
             {
                 if (receiver.Active)
                 {
-                    sensorReceiverMap.TryAdd(receiver.SensorID, receiver.ID);
+                    if (!sensorReceiverMap.ContainsKey(receiver.SensorID))
+                    {
+                        sensorReceiverMap[receiver.SensorID] = new List<int>();
+                    }
+                    sensorReceiverMap[receiver.SensorID].Add(receiver.ID);
                 }
             }
 

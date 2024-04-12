@@ -1,5 +1,6 @@
 ﻿
 using System.Collections.Concurrent;
+using System.Drawing;
 
 namespace Kongsberg_Assignment
 {
@@ -9,6 +10,10 @@ namespace Kongsberg_Assignment
         public int SensorID { get; set; }
         public bool Active { get; set; }
 
+        public int PollingInterval { get; set; }
+
+        // TODO consider making a method that periodically clears hashsets.
+        private HashSet<string> processedMessages = new HashSet<string>();
         public void Start(ConcurrentDictionary<int, ConcurrentQueue<string>> messagePool)
         {
             if (Active)
@@ -21,18 +26,19 @@ namespace Kongsberg_Assignment
         {
             while (true)
             {
-                // Check if there are messages for this receiver's sensor
-                if (messagePool.TryGetValue(this.ID, out ConcurrentQueue<string> messageQueue))
+                if (messagePool.TryGetValue(SensorID, out ConcurrentQueue<string> messageQueue))
                 {
-                    // Dequeue and process messages
-                    while (messageQueue.TryDequeue(out string message))
+                    if (messageQueue.TryPeek(out string message))
                     {
-                        AnalyzeMessage(message);
+                        if (!processedMessages.Contains(message))
+                        {
+                            AnalyzeMessage(message);
+                            processedMessages.Add(message);
+                        }
                     }
                 }
-
-                // Simulate receiver polling interval
-                await Task.Delay(100);
+                // Consider decreasing polling interval if there was a warning, and increase it there were no warnings lately
+                await Task.Delay(this.PollingInterval); // Polling interval
             }
         }
 
@@ -40,21 +46,23 @@ namespace Kongsberg_Assignment
         {
             if (message == null)
             {
-                WriteColoredLine($"Message from sensor {SensorID} was empty!", ConsoleColor.White, ConsoleColor.Red);
+                WriteColoredLine($"Message from sensor {SensorID} was empty!", ConsoleColor.Red);
                 return;
             }
 
             var sensorData = SensorData.Parse(message);
+
+            var receiverMessage = $"Receiver {this.ID} received message: {message} from sensor {this.SensorID}";
             switch (sensorData.Quality)
             {
                 case "Alarm":
-                    WriteColoredLine($"Receiver {this.ID} received message: {message}", ConsoleColor.Red);
+                    WriteColoredLine(receiverMessage, ConsoleColor.Red);
                     break;
                 case "Warning":
-                    WriteColoredLine($"Receiver {this.ID} received message: {message}", ConsoleColor.Yellow);
+                    WriteColoredLine(receiverMessage, ConsoleColor.Yellow);
                     break;
                 case "Normal":
-                    WriteColoredLine($"Receiver {this.ID} received message: {message}", ConsoleColor.Green);
+                    WriteColoredLine(receiverMessage, ConsoleColor.Green);
                     break;
                 default:
                     Console.WriteLine("Unknown quality status.");
@@ -63,15 +71,27 @@ namespace Kongsberg_Assignment
 
         }
 
-        void WriteColoredLine(string text, ConsoleColor foregroundColor, ConsoleColor backgroundColor = ConsoleColor.Black)
+        void WriteColoredLine(string text, ConsoleColor color)
         {
-            ConsoleColor originalForeground = Console.ForegroundColor;
-            ConsoleColor originalBackground = Console.BackgroundColor;
-            Console.ForegroundColor = foregroundColor;
-            Console.BackgroundColor = backgroundColor;
+            (int r, int g, int b) = GetRgbValues(color);
+            Console.Write("\u001b[38;2;");
+            Console.Write($"{r};{g};{b}m");
             Console.WriteLine(text);
-            Console.ForegroundColor = originalForeground;
-            Console.BackgroundColor = originalBackground;
+            Console.Write("\u001b[39m");
+        }
+        (int r, int g, int b) GetRgbValues(ConsoleColor color)
+        {
+            switch (color)
+            {
+                case ConsoleColor.Red:
+                    return (255, 0, 0);
+                case ConsoleColor.Yellow:
+                    return (255, 255, 0);
+                case ConsoleColor.Green:
+                    return (0, 255, 0);
+                default:
+                    return (255, 255, 255);
+            }
         }
     }
 }
