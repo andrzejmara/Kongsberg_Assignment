@@ -1,13 +1,16 @@
 ﻿namespace Kongsberg_Assignment
 {
-    public class SensorData
+    /// <summary>
+    /// Class for creation Sensor Message
+    /// </summary>
+    public class SensorMessage
     {
         public int Id { get; set; }
         public string Type { get; set; }
         public int Value { get; set; }
         public string Quality { get; set; }
 
-        public SensorData(int id, string type, int value, string quality)
+        public SensorMessage(int id, string type, int value, string quality)
         {
             Id = id;
             Type = type;
@@ -15,12 +18,12 @@
             Quality = quality;
         }
 
-        public string ToMessage()
+        public string ToText()
         {
             return $"$FIX, {Id}, {Type}, {Value}, {Quality}*";
         }
 
-        public static SensorData Parse(string message)
+        public static SensorMessage Parse(string message)
         {
             string[] parts = message.Split(',');
 
@@ -32,7 +35,7 @@
             string type = parts[2].Trim();
             int value = int.Parse(parts[3].Trim());
             string quality = parts[4].Trim().Trim('*');
-            return new SensorData(id, type, value, quality);
+            return new SensorMessage(id, type, value, quality);
         }
     }
 }

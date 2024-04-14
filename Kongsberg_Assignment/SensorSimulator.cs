@@ -1,23 +1,28 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 
 namespace Kongsberg_Assignment
 {
     public class SensorSimulator
     {
-        private readonly List<Sensor> _sensors;
-        private readonly Random _random;
+        private readonly Sensor Sensor;
+        private readonly ThreadLocal<Random> _random;
         //TODO consider creating a method that periodically cleans the pool.
         private readonly ConcurrentDictionary<int, ConcurrentQueue<string>> _messagePool;
         private readonly ConcurrentDictionary<int, List<int>> _sensorReceiverMap;
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly Task _messageProcessingTask;
 
-        public SensorSimulator(List<Sensor> sensors, ConcurrentDictionary<int, ConcurrentQueue<string>> messagePool, ConcurrentDictionary<int, List<int>> sensorReceiverMap)
+        public SensorSimulator(Sensor sensor, ConcurrentDictionary<int, ConcurrentQueue<string>> messagePool)
         {
-            _sensors = sensors;
-            _random = new Random();
+            Sensor = sensor;
+            // Just to make sure, the random generation is thread safe.
+            _random = new ThreadLocal<Random>(() =>
+            {
+                return new Random(Guid.NewGuid().GetHashCode());
+            });
+
             _messagePool = messagePool;
-            _sensorReceiverMap = sensorReceiverMap;
             _cancellationTokenSource = new CancellationTokenSource();
             _messageProcessingTask = Task.Run(() => ProcessMessagesAsync(_cancellationTokenSource.Token));
             StartMessageGeneration();
@@ -25,30 +30,27 @@ namespace Kongsberg_Assignment
 
         private void StartMessageGeneration()
         {
-            foreach (var sensor in _sensors)
-            {
-                Task.Run(() => GenerateAndEnqueueMessages(sensor, _cancellationTokenSource.Token));
-            }
+            Task.Run(() => GenerateAndEnqueueMessages(_cancellationTokenSource.Token));
         }
 
-        private async Task GenerateAndEnqueueMessages(Sensor sensor, CancellationToken cancellationToken)
+        private async Task GenerateAndEnqueueMessages(CancellationToken cancellationToken)
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                int value = GenerateRandomValue(sensor.MinValue, sensor.MaxValue);
-                string quality = ClassifyValue(value, sensor.MinValue, sensor.MaxValue);
-                string message = new SensorData(sensor.ID, sensor.Type, value, quality).ToMessage();
-                Console.WriteLine($"Sensor {sensor.ID} sent a message: {message}");
-                _messagePool.AddOrUpdate(sensor.ID, new ConcurrentQueue<string>(), (id, queue) => queue).Enqueue(message);
+                int value = GenerateRandomValue(Sensor.MinValue, Sensor.MaxValue);
+                string quality = ClassifyValue(value, Sensor.MinValue, Sensor.MaxValue);
+                string message = new SensorMessage(Sensor.ID, Sensor.Type, value, quality).ToText();
+                Console.WriteLine($"Sensor {Sensor.ID} sent a message: {message}");
+                _messagePool.AddOrUpdate(Sensor.ID, new ConcurrentQueue<string>(), (id, queue) => queue).Enqueue(message);
                 // Calculate Herz to seconds
-                var period = TimeSpan.FromSeconds(1.0 / sensor.Frequency);
+                var period = TimeSpan.FromSeconds(1.0 / Sensor.Frequency);
                 await Task.Delay(period);
             }
         }
 
         private int GenerateRandomValue(int minValue, int maxValue)
         {
-            return _random.Next(minValue, maxValue + 1);
+            return _random.Value.Next(minValue, maxValue + 1);
         }
 
         private string ClassifyValue(int value, int minValue, int maxValue)
@@ -71,14 +73,11 @@ namespace Kongsberg_Assignment
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                foreach (var sensorId in _sensorReceiverMap.Keys)
+                if (_messagePool.TryGetValue(this.Sensor.ID, out ConcurrentQueue<string> messageQueue))
                 {
-                    if (_messagePool.TryGetValue(sensorId, out ConcurrentQueue<string> messageQueue))
+                    while (messageQueue.TryDequeue(out string message))
                     {
-                        while (messageQueue.TryDequeue(out string message))
-                        {
-                            await TransmitMessageAsync(message);
-                        }
+                        await TransmitMessageAsync(message);
                     }
                 }
                 await Task.Delay(100); // Polling interval

@@ -4,13 +4,11 @@ using System.Text.Json;
 
 namespace Kongsberg_Assignment
 {
-
-
     class Program
     {
         static async Task Main(string[] args)
         {
-
+            // Create sensors and receivers based on configuration.
             string exeDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             string sensorConfigFilePath = Path.Combine(exeDirectory, "config", "sensorConfig.json");
             string sensorConfig = File.ReadAllText(sensorConfigFilePath);
@@ -18,7 +16,7 @@ namespace Kongsberg_Assignment
             string receiverConfigFilePath = Path.Combine(exeDirectory, "config", "receiverConfig.json");
             string receiverConfig = File.ReadAllText(receiverConfigFilePath);
 
-            //cool that .net 8 has its own serializer
+            // cool that .net 8 has its own serializer. 
             List<Sensor> sensors = JsonSerializer.Deserialize<SensorConfig>(sensorConfig).Sensors;
             List<Receiver> receivers = JsonSerializer.Deserialize<ReceiverConfig>(receiverConfig).Receivers;
 
@@ -39,9 +37,14 @@ namespace Kongsberg_Assignment
                 }
             }
 
+            List<SensorSimulator> listOfSensorSimulators = new List<SensorSimulator>();
 
-            // Create a SensorSimulator instance
-            var sensorSimulator = new SensorSimulator(sensors, messagePool, sensorReceiverMap);
+            // Create SensorSimulator instances.
+            foreach (var sensor in sensors)
+            {
+                var sensorSimulator = new SensorSimulator(sensor, messagePool);
+                listOfSensorSimulators.Add(sensorSimulator);
+            }
 
             // Start receivers
             foreach (var receiver in receivers)
@@ -52,7 +55,10 @@ namespace Kongsberg_Assignment
             // Keep the program running for demonstration purpose
             await Task.Delay(TimeSpan.FromSeconds(30));
 
-            sensorSimulator.Stop();
+            foreach (var sensorSimulator in listOfSensorSimulators)
+            {
+                sensorSimulator.Stop();
+            }
         }
     }
 

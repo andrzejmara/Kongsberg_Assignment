@@ -1,6 +1,5 @@
 ﻿
 using System.Collections.Concurrent;
-using System.Drawing;
 
 namespace Kongsberg_Assignment
 {
@@ -50,7 +49,7 @@ namespace Kongsberg_Assignment
                 return;
             }
 
-            var sensorData = SensorData.Parse(message);
+            var sensorData = SensorMessage.Parse(message);
 
             var receiverMessage = $"Receiver {this.ID} received message: {message} from sensor {this.SensorID}";
             switch (sensorData.Quality)
@@ -79,6 +78,7 @@ namespace Kongsberg_Assignment
             Console.WriteLine(text);
             Console.Write("\u001b[39m");
         }
+
         (int r, int g, int b) GetRgbValues(ConsoleColor color)
         {
             switch (color)
