@@ -11,6 +11,7 @@ namespace Kongsberg_Assignment
         private readonly ConcurrentDictionary<int, ConcurrentQueue<string>> _messagePool;
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly Task _messageProcessingTask;
+        private TimeSpan _period;
 
         public SensorSimulator(Sensor sensor, ConcurrentDictionary<int, ConcurrentQueue<string>> messagePool)
         {
@@ -20,7 +21,8 @@ namespace Kongsberg_Assignment
             {
                 return new Random(Guid.NewGuid().GetHashCode());
             });
-
+            // Calculate Herz to seconds
+            _period = TimeSpan.FromSeconds(1.0 / Sensor.Frequency);
             _messagePool = messagePool;
             _cancellationTokenSource = new CancellationTokenSource();
             _messageProcessingTask = Task.Run(() => ProcessMessagesAsync(_cancellationTokenSource.Token));
@@ -39,11 +41,9 @@ namespace Kongsberg_Assignment
                 int value = GenerateRandomValue(Sensor.MinValue, Sensor.MaxValue);
                 string quality = ClassifyValue(value, Sensor.MinValue, Sensor.MaxValue);
                 string message = new SensorMessage(Sensor.ID, Sensor.Type, value, quality).ToText();
-                Console.WriteLine($"Sensor {Sensor.ID} sent a message: {message}");
                 _messagePool.AddOrUpdate(Sensor.ID, new ConcurrentQueue<string>(), (id, queue) => queue).Enqueue(message);
-                // Calculate Herz to seconds
-                var period = TimeSpan.FromSeconds(1.0 / Sensor.Frequency);
-                await Task.Delay(period);
+                Console.WriteLine($"Sensor {Sensor.ID} sent a message: {message}");
+                await Task.Delay(_period);
             }
         }
 
@@ -71,6 +71,7 @@ namespace Kongsberg_Assignment
                 return "Normal";
         }
 
+        ///Simulate sending the message
         private async Task ProcessMessagesAsync(CancellationToken cancellationToken)
         {
             while (!cancellationToken.IsCancellationRequested)
@@ -82,14 +83,14 @@ namespace Kongsberg_Assignment
                         await TransmitMessageAsync(message);
                     }
                 }
-                await Task.Delay(100); // Polling interval
+                await Task.Delay(_period); // Polling interval
             }
         }
 
         private async Task TransmitMessageAsync(string message)
         {
             // Simulate message transmission delay (e.g., network latency)
-            await Task.Delay(TimeSpan.FromSeconds(0.1));
+            await Task.Delay(TimeSpan.FromSeconds(0.01));
         }
 
         public void Stop()
