@@ -45,6 +45,11 @@ namespace Kongsberg_Assignment
             {
                 sensorSimulator.Stop();
             }
+            foreach (var receiver in receivers)
+            {
+                receiver.Stop();
+            }
+
         }
     }
 

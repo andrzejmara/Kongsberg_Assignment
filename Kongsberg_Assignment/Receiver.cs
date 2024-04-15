@@ -1,5 +1,6 @@
 ﻿
 using System.Collections.Concurrent;
+using System.Threading;
 
 namespace Kongsberg_Assignment
 {
@@ -14,19 +15,25 @@ namespace Kongsberg_Assignment
         // TODO consider making a method that periodically clears hashsets.
         private HashSet<string> processedMessages = new HashSet<string>();
 
+        private CancellationTokenSource cancellationTokenSource;
         public void Start(ConcurrentDictionary<int, ConcurrentQueue<string>> messagePool)
         {
             if (Active)
             {
-                Task.Run(() => ReceiveMessages(messagePool));
+                cancellationTokenSource = new CancellationTokenSource();
+                Task.Run(() => ReceiveMessages(messagePool, cancellationTokenSource.Token));
             }
         }
 
-        //TODO implement a STOP function as in SensorSimulator
-
-        async Task ReceiveMessages(ConcurrentDictionary<int, ConcurrentQueue<string>> messagePool)
+        public void Stop()
         {
-            while (true)
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
+        }
+
+        async Task ReceiveMessages(ConcurrentDictionary<int, ConcurrentQueue<string>> messagePool, CancellationToken cancellationToken)
+        {
+            while (!cancellationToken.IsCancellationRequested)
             {
                 if (messagePool.TryGetValue(SensorID, out ConcurrentQueue<string> messageQueue))
                 {
