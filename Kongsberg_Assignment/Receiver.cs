@@ -70,6 +70,9 @@ namespace Kongsberg_Assignment
 
         }
 
+        /// <summary>
+        /// I am using ANSI color coding (not Console.ForegroundColor) because it is faster and safe with async operations.
+        /// </summary>
         void WriteColoredLine(string text, ConsoleColor color)
         {
             (int r, int g, int b) = GetRgbValues(color);

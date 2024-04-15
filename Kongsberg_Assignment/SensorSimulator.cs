@@ -53,13 +53,16 @@ namespace Kongsberg_Assignment
             return _random.Value.Next(minValue, maxValue + 1);
         }
 
+        private double _alarmTreshold = 0.1;
+        private double _warningTreshold = 1.5;
+
         private string ClassifyValue(int value, int minValue, int maxValue)
         {
-            double range = (maxValue - minValue) * 0.1;
+            double range = (maxValue - minValue) * _alarmTreshold;
             double lowerAlarm = minValue + range;
             double upperAlarm = maxValue - range;
-            double lowerWarning = minValue + range * 1.5;
-            double upperWarning = maxValue - range * 1.5;
+            double lowerWarning = minValue + range * _warningTreshold;
+            double upperWarning = maxValue - range * _warningTreshold;
 
             if (value < lowerAlarm || value > upperAlarm)
                 return "Alarm";
