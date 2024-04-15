@@ -13,6 +13,7 @@ namespace Kongsberg_Assignment
 
         // TODO consider making a method that periodically clears hashsets.
         private HashSet<string> processedMessages = new HashSet<string>();
+
         public void Start(ConcurrentDictionary<int, ConcurrentQueue<string>> messagePool)
         {
             if (Active)
@@ -20,6 +21,8 @@ namespace Kongsberg_Assignment
                 Task.Run(() => ReceiveMessages(messagePool));
             }
         }
+
+        //TODO implement a STOP function as in SensorSimulator
 
         async Task ReceiveMessages(ConcurrentDictionary<int, ConcurrentQueue<string>> messagePool)
         {

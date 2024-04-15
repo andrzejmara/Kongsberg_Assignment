@@ -9,7 +9,6 @@ namespace Kongsberg_Assignment
         private readonly ThreadLocal<Random> _random;
         //TODO consider creating a method that periodically cleans the pool.
         private readonly ConcurrentDictionary<int, ConcurrentQueue<string>> _messagePool;
-        private readonly ConcurrentDictionary<int, List<int>> _sensorReceiverMap;
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly Task _messageProcessingTask;
 
